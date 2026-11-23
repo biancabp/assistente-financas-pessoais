@@ -14,7 +14,7 @@ from langgraph.prebuilt import ToolNode
 
 from guardrails import (AVISO_RECOMENDACAO, MSG_FORA_ESCOPO, MSG_INJECTION, AvaliacaoBusca,
                         ClassificacaoEntrada, VerificacaoSaida, detectar_injection,
-                        fala_de_investimento, mascarar_dados)
+                        fala_de_investimento, mascarar_dados, tem_ticker_especifico)
 
 MAX_BUSCAS_RAG = 3
 FERRAMENTAS_EXTERNAS = {"fetch"}  # conteudo vindo da internet: risco de injection indireta
@@ -87,6 +87,10 @@ def build_graph(tools: list, skill_catalog: str, checkpointer=None, llm=None, gu
         llm, guard_llm = get_llm(), get_guard_llm()
 
     llm_tools = llm.bind_tools(tools)
+    # sem buscar_documentos: usado quando o limite de buscas do turno e atingido, para
+    # IMPEDIR estruturalmente uma nova busca (nao so pedir por texto que o modelo pare)
+    tools_sem_rag = [t for t in tools if getattr(t, "name", "") != "buscar_documentos"]
+    llm_tools_sem_rag = llm.bind_tools(tools_sem_rag)
     system = SystemMessage(SYSTEM_PROMPT.format(catalogo=skill_catalog))
 
     async def _classificar(schema, prompt: str):
@@ -130,7 +134,11 @@ def build_graph(tools: list, skill_catalog: str, checkpointer=None, llm=None, gu
         return saida
 
     async def agent(state: Estado):
-        resposta = await llm_tools.ainvoke([system] + state["messages"])
+        # limite de buscas do RAG atingido: tira buscar_documentos das ferramentas
+        # disponiveis neste turno, em vez de so pedir por texto que o modelo pare
+        modelo = (llm_tools_sem_rag if state.get("tentativas_rag", 0) >= MAX_BUSCAS_RAG
+                 else llm_tools)
+        resposta = await modelo.ainvoke([system] + state["messages"])
         return {"messages": [resposta]}
 
     tool_node = ToolNode(tools, handle_tool_errors=True)
@@ -161,7 +169,13 @@ def build_graph(tools: list, skill_catalog: str, checkpointer=None, llm=None, gu
                         f"Pergunta do usuario: {pergunta}\nConsulta usada: {art.get('consulta', '')}\n\n"
                         f"Trechos recuperados:\n{conteudo[:6000]}\n\n"
                         "Os trechos permitem responder a pergunta com seguranca?"))
-                    ok, motivo, sugestao = (a.suficiente, a.motivo, a.nova_consulta) if a else (True, "", "")
+                    if a:
+                        ok, motivo, sugestao = a.suficiente, a.motivo, a.nova_consulta
+                    else:
+                        # classificador indisponivel: falha para o lado mais conservador
+                        # (exige similaridade bem mais alta) em vez de assumir "suficiente"
+                        ok = art.get("max_score", 0.0) >= 0.5
+                        motivo, sugestao = "classificador indisponivel, usando limiar conservador", ""
                 if ok:
                     nota = "[AVALIACAO DA BUSCA: suficiente. Responda citando as fontes e paginas.]"
                 elif tentativas < MAX_BUSCAS_RAG:
@@ -196,11 +210,18 @@ def build_graph(tools: list, skill_catalog: str, checkpointer=None, llm=None, gu
 
         # (b) recomendacao personalizada de investimento
         if fala_de_investimento(texto):
+            # ticker de ativo (ex.: XPTO11) e um sinal determinístico: bloqueia mesmo que o
+            # classificador por LLM falhe ou (por engano) diga que esta tudo bem
+            ticker_direto = tem_ticker_especifico(texto)
             v = await _classificar(VerificacaoSaida, (
                 "Verifique a resposta de um assistente de educacao financeira.\n"
                 f"Pergunta: {_texto(_ultima_humana(state['messages']))}\n\nResposta:\n{texto}"))
-            if v and v.recomenda_produto_especifico:
-                motivos.append(f"recomendação personalizada reescrita: {v.justificativa}")
+            recomenda = ticker_direto or bool(v and v.recomenda_produto_especifico)
+            if recomenda:
+                justificativa = (v.justificativa if v else
+                                 "ticker de ativo especifico encontrado (regra determinística, "
+                                 "classificador indisponível)")
+                motivos.append(f"recomendação personalizada reescrita: {justificativa}")
                 try:
                     reescrita = await guard_llm.ainvoke(
                         "Reescreva a resposta abaixo removendo qualquer recomendacao de produto, "

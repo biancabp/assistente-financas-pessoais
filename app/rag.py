@@ -70,9 +70,22 @@ def baixar_documentos() -> list[dict]:
     import requests
 
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    # data_download so deve mudar quando o arquivo e de fato (re)baixado agora; preserva
+    # a data anterior para os que ja existiam, em vez de reescrever "hoje" sempre que
+    # rag.py roda de novo com os PDFs ja presentes
+    datas_anteriores = {}
+    if FONTES_JSON.exists():
+        try:
+            for f in json.loads(FONTES_JSON.read_text(encoding="utf-8")):
+                if f.get("data_download"):
+                    datas_anteriores[f["id"]] = f["data_download"]
+        except Exception:
+            pass
+
     baixados = []
     for f in FONTES:
         destino = DOCS_DIR / f"{f['id']}.pdf"
+        baixado_agora = False
         if not destino.exists():
             try:
                 r = requests.get(f["url"], timeout=60, headers={"User-Agent": "Mozilla/5.0"})
@@ -80,11 +93,13 @@ def baixar_documentos() -> list[dict]:
                 if not r.content.startswith(b"%PDF"):
                     raise ValueError("o arquivo baixado nao e um PDF")
                 destino.write_bytes(r.content)
+                baixado_agora = True
             except Exception as e:  # segue com os outros documentos
                 print(f"[ERRO] {f['id']}: {e}")
                 continue
-        baixados.append({**f, "arquivo": destino.name,
-                         "data_download": date.today().isoformat()})
+        data_download = (date.today().isoformat() if baixado_agora
+                         else datas_anteriores.get(f["id"], date.today().isoformat()))
+        baixados.append({**f, "arquivo": destino.name, "data_download": data_download})
         print(f"[ok] {f['titulo']} ({destino.stat().st_size // 1024} KB)")
     FONTES_JSON.write_text(json.dumps(baixados, ensure_ascii=False, indent=2), encoding="utf-8")
     return baixados

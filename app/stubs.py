@@ -1,4 +1,4 @@
-"""Ferramentas de mentira para testar o grafo sem a parte da Pessoa B.
+"""Ferramentas de mentira para testar o grafo sem MCP/skills disponiveis.
 Mesmos nomes e assinaturas das ferramentas reais."""
 import math
 

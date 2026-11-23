@@ -1,4 +1,5 @@
 import math
+from typing import Literal
 
 from mcp.server.fastmcp import FastMCP
 from typing_extensions import TypedDict
@@ -45,7 +46,8 @@ def reserva_emergencia(despesas_mensais: float, meses_cobertura: int = 6,
 
 
 @mcp.tool()
-def financiamento(valor: float, taxa_mensal_pct: float, meses: int, sistema: str = "price") -> dict:
+def financiamento(valor: float, taxa_mensal_pct: float, meses: int,
+                  sistema: Literal["price", "sac"] = "price") -> dict:
     """Simula financiamento pelo sistema 'price' (parcela fixa) ou 'sac' (amortizacao constante)."""
     if valor <= 0 or meses <= 0 or taxa_mensal_pct < 0:
         return {"erro": "valor e meses devem ser maiores que zero e a taxa nao pode ser negativa"}
@@ -78,9 +80,10 @@ def financiamento(valor: float, taxa_mensal_pct: float, meses: int, sistema: str
 
 @mcp.tool()
 def plano_quitacao_dividas(dividas: list[Divida], orcamento_mensal: float,
-                           metodo: str = "avalanche") -> dict:
+                           metodo: Literal["avalanche", "bola_de_neve"] = "avalanche") -> dict:
     """Simula a quitacao de dividas. Cada divida: {nome, saldo, taxa_mensal_pct, parcela_minima}.
     metodo: 'avalanche' (maior juros primeiro) ou 'bola_de_neve' (menor saldo primeiro)."""
+    metodo = metodo.lower()
     if metodo not in ("avalanche", "bola_de_neve"):
         return {"erro": "metodo deve ser 'avalanche' ou 'bola_de_neve'"}
     if not dividas:

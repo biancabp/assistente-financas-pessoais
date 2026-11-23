@@ -8,9 +8,11 @@
 import asyncio
 import os
 import threading
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.tools import StructuredTool
 from langgraph.checkpoint.memory import InMemorySaver
 
 load_dotenv()
@@ -19,6 +21,28 @@ _loop = asyncio.new_event_loop()
 threading.Thread(target=_loop.run_forever, daemon=True, name="agente-loop").start()
 _grafo = None
 _lock = threading.Lock()
+_modo_stub = False  # True se as ferramentas MCP reais nao carregaram (exposto na interface)
+
+# minimo privilegio: o unico uso real do fetch neste agente e consultar a API do BCB
+# (Selic/CDI). Restringir a esses dominios reduz o risco de exfiltracao de dados via URL
+# (o agente nao deveria conseguir ser induzido a mandar dados do usuario para outro host).
+DOMINIOS_FETCH_PERMITIDOS = ("api.bcb.gov.br",)
+
+
+def _restringir_fetch(tool_original):
+    async def fetch_restrito(**kwargs):
+        url = kwargs.get("url", "") or ""
+        host = urlparse(url).hostname or ""
+        if host not in DOMINIOS_FETCH_PERMITIDOS:
+            return (f"[BLOQUEADO por minimo privilegio] O fetch deste agente so pode acessar "
+                    f"{', '.join(DOMINIOS_FETCH_PERMITIDOS)} (unico uso real: Selic/CDI). "
+                    f"URL pedida: {url or '(vazia)'}")
+        return await tool_original.ainvoke(kwargs)
+
+    return StructuredTool.from_function(
+        coroutine=fetch_restrito, name=tool_original.name,
+        description=tool_original.description, args_schema=tool_original.args_schema,
+    )
 
 
 VERBOSE = os.environ.get("AGENTE_VERBOSE", "1") == "1"  # imprime os nos visitados
@@ -34,9 +58,10 @@ def _rodar(coro, timeout=240):
 
 
 async def _carregar_ferramentas() -> tuple[list, str]:
+    global _modo_stub
     from rag import buscar_documentos
 
-    try:  # parte da Pessoa B
+    try:
         from mcp_client import build_client
         from skills_loader import get_skill_catalog, load_skill
         client, tools = build_client(), []
@@ -45,10 +70,13 @@ async def _carregar_ferramentas() -> tuple[list, str]:
                 tools += await client.get_tools(server_name=servidor)
             except Exception as e:
                 print(f"[agente] servidor MCP '{servidor}' indisponivel: {e}")
+        tools = [_restringir_fetch(t) if t.name == "fetch" else t for t in tools]
+        _modo_stub = False
         return tools + [load_skill, buscar_documentos], get_skill_catalog()
     except ImportError as e:
-        print(f"[agente] parte da Pessoa B indisponivel ({e}); usando ferramentas de teste")
+        print(f"[agente] MCP/skills indisponivel ({e}); usando ferramentas de teste (stub)")
         from stubs import STUB_CATALOGO, STUB_TOOLS
+        _modo_stub = True
         return STUB_TOOLS + [buscar_documentos], STUB_CATALOGO
 
 
@@ -99,13 +127,15 @@ async def _achat(grafo, thread_id: str, texto: str) -> dict:
 
 def chat(thread_id: str, texto: str) -> dict:
     """Envia uma mensagem para a conversa thread_id.
-    Devolve {"resposta", "tools_called", "skills_loaded", "consultas_rag", "guardrail"}."""
+    Devolve {"resposta", "tools_called", "skills_loaded", "consultas_rag", "guardrail", "modo_stub"}."""
     grafo = get_grafo()
     try:
-        return _rodar(_achat(grafo, thread_id, texto))
+        resultado = _rodar(_achat(grafo, thread_id, texto))
     except Exception as e:
-        return {"resposta": f"Desculpe, ocorreu um erro: {type(e).__name__}: {e}",
-                "tools_called": [], "skills_loaded": [], "consultas_rag": [], "guardrail": None}
+        resultado = {"resposta": f"Desculpe, ocorreu um erro: {type(e).__name__}: {e}",
+                    "tools_called": [], "skills_loaded": [], "consultas_rag": [], "guardrail": None}
+    resultado["modo_stub"] = _modo_stub
+    return resultado
 
 
 def historico(thread_id: str) -> list:

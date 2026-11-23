@@ -1,6 +1,6 @@
 ---
 name: renda-fixa-vs-poupanca
-description: Compara rendimento liquido de poupanca, CDB e LCI/LCA para um valor e prazo.
+description: Compara rendimento liquido de poupanca, CDB e LCI/LCA para um valor e prazo. Use quando o usuario quiser saber onde deixar um valor parado por um prazo.
 ---
 
 # Comparar renda fixa vs. poupanca

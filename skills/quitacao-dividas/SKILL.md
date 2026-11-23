@@ -1,6 +1,6 @@
 ---
 name: quitacao-dividas
-description: Monta um plano de quitacao de dividas comparando avalanche e bola de neve.
+description: Monta um plano de quitacao de dividas comparando avalanche e bola de neve. Use quando o usuario quiser sair das dividas ou perguntar qual pagar primeiro.
 ---
 
 # Montar plano de quitacao de dividas
