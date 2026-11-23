@@ -2,6 +2,8 @@
 
 **Participantes:** Bianca Bezerra Pires e Maria Eduarda Bayer
 
+**Link vídeo do projeto:** https://drive.google.com/file/d/10ZUEgCVfBih8BH0SlXRk8AiZ_Q4XnT0u/view?usp=sharing
+
 ## O que o assistente faz e para quem
 
 É um assistente de educação financeira para **pessoas comuns no Brasil** que querem organizar o orçamento, sair das dívidas, montar uma reserva de emergência, entender crédito e financiamento e aprender conceitos de investimento.
