@@ -125,6 +125,21 @@ async def _achat(grafo, thread_id: str, texto: str) -> dict:
     }
 
 
+def _mensagem_erro_amigavel(e: Exception) -> str:
+    from langchain_core.exceptions import ModelRateLimitError
+
+    if isinstance(e, (ModelRateLimitError, TimeoutError)) or "RESOURCE_EXHAUSTED" in str(e):
+        return ("O modelo está indisponível agora (limite de requisições do plano gratuito "
+                "do Gemini). As duas tentativas automáticas também falharam. Espere um "
+                "minuto e tente de novo; se persistir, pode ser o limite diário.")
+    from langchain_core.exceptions import ModelError
+    if isinstance(e, ModelError):
+        return ("O modelo do Gemini está instável agora (sobrecarga momentânea nos "
+                "servidores do Google). As duas tentativas automáticas também falharam. "
+                "Tente de novo em alguns segundos.")
+    return f"Desculpe, ocorreu um erro inesperado: {type(e).__name__}: {e}"
+
+
 def chat(thread_id: str, texto: str) -> dict:
     """Envia uma mensagem para a conversa thread_id.
     Devolve {"resposta", "tools_called", "skills_loaded", "consultas_rag", "guardrail", "modo_stub"}."""
@@ -132,7 +147,7 @@ def chat(thread_id: str, texto: str) -> dict:
     try:
         resultado = _rodar(_achat(grafo, thread_id, texto))
     except Exception as e:
-        resultado = {"resposta": f"Desculpe, ocorreu um erro: {type(e).__name__}: {e}",
+        resultado = {"resposta": _mensagem_erro_amigavel(e),
                     "tools_called": [], "skills_loaded": [], "consultas_rag": [], "guardrail": None}
     resultado["modo_stub"] = _modo_stub
     return resultado
