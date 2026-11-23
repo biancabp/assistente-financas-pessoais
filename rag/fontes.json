@@ -1,0 +1,47 @@
+[
+  {
+    "id": "bcb_caderno_financas_pessoais",
+    "titulo": "Caderno de Educação Financeira – Gestão de Finanças Pessoais (Cuidando do seu dinheiro)",
+    "orgao": "Banco Central do Brasil",
+    "ano": 2026,
+    "url": "https://www.bcb.gov.br/content/cidadaniafinanceira/documentos_cidadania/Cuidando_do_seu_dinheiro_Gestao_de_Financas_Pessoais/caderno_cidadania_financeira.pdf",
+    "arquivo": "bcb_caderno_financas_pessoais.pdf",
+    "data_download": "2026-11-23"
+  },
+  {
+    "id": "cvm_guia_planejamento",
+    "titulo": "Guia de Planejamento Financeiro",
+    "orgao": "Comissão de Valores Mobiliários (CVM)",
+    "ano": null,
+    "url": "https://www.gov.br/investidor/pt-br/educacional/publicacoes-educacionais/guias/guia-de-planejamento-financeiro/guia-planejamento-financeiro.pdf/@@download/file",
+    "arquivo": "cvm_guia_planejamento.pdf",
+    "data_download": "2026-11-23"
+  },
+  {
+    "id": "cvm_caderno_1",
+    "titulo": "Caderno CVM de Educação Financeira nº 1",
+    "orgao": "Comissão de Valores Mobiliários (CVM)",
+    "ano": null,
+    "url": "https://www.gov.br/investidor/pt-br/educacional/publicacoes-educacionais/cadernos/cvm-caderno-1.pdf/@@download/file",
+    "arquivo": "cvm_caderno_1.pdf",
+    "data_download": "2026-11-23"
+  },
+  {
+    "id": "cvm_caderno_10",
+    "titulo": "Caderno CVM nº 10 – Diversificação e composição de carteiras",
+    "orgao": "Comissão de Valores Mobiliários (CVM)",
+    "ano": null,
+    "url": "https://www.gov.br/previdencia/pt-br/outros/imagens/2016/08/CVM-Caderno-10semISBNparaimpressao.pdf",
+    "arquivo": "cvm_caderno_10.pdf",
+    "data_download": "2026-11-23"
+  },
+  {
+    "id": "fgc_garantia",
+    "titulo": "Material informativo sobre a garantia do FGC (versão dez/2025)",
+    "orgao": "Fundo Garantidor de Créditos (FGC)",
+    "ano": 2025,
+    "url": "https://fgc.org.br/documents/d/guest/material-para-corretoras_versao-dezembro2025",
+    "arquivo": "fgc_garantia.pdf",
+    "data_download": "2026-11-23"
+  }
+]

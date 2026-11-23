@@ -1,0 +1,19 @@
+# grafo e modelo
+langgraph>=1.0
+langchain-core>=1.0
+langchain-google-genai
+python-dotenv
+# MCP (mcp<2: a 2.x e incompativel com langchain-mcp-adapters)
+mcp[cli]<2
+langchain-mcp-adapters
+uv  # fornece o uvx, que sobe o servidor Fetch da comunidade
+# RAG
+langchain-community
+langchain-text-splitters
+langchain-huggingface
+sentence-transformers
+faiss-cpu
+pypdf
+requests
+# interface
+streamlit
