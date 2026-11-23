@@ -45,7 +45,7 @@ def detectar_injection(texto: str) -> str | None:
 # ---------------------------------------------------------------------------
 _RE_CPF = re.compile(r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b")
 _RE_CARTAO = re.compile(r"\b(?:\d[ -]?){13,19}\b")
-_RE_CHAVES = re.compile(r"AIza[0-9A-Za-z_\-]{30,}|sk-(?:ant-|proj-)?[A-Za-z0-9_\-]{20,}")
+_RE_CHAVES = re.compile(r"AIza[0-9A-Za-z_\-]{30,}")
 _RE_EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
 
 
@@ -68,7 +68,7 @@ def mascarar_dados(texto: str) -> tuple[str, list[str]]:
     achados = []
     texto = texto or ""
 
-    for nome_var in ("GOOGLE_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+    for nome_var in ("GOOGLE_API_KEY",):
         valor = os.environ.get(nome_var)
         if valor and len(valor) > 8 and valor in texto:
             texto = texto.replace(valor, "[CHAVE REMOVIDA]")
